@@ -17,7 +17,6 @@ library(readxl)
 
 ```{r}
 cancer_dataset <- read_csv('metadata.csv')
-
 cancer_abundances <- read_excel('abundances.xlsx')
 ```
 
@@ -28,7 +27,7 @@ Checking datatypes:
 str(cancer_dataset)
 ```
 
-Converting datatypes (cleaning the data)
+Converting datatypes (cleaning the data):
 ```{r}
 cancer_dataset$Gender <- as.factor(cancer_dataset$Gender)
 cancer_dataset$Proteomic_Subtype <- as.factor(cancer_dataset$Proteomic_Subtype)
