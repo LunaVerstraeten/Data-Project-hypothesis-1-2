@@ -100,15 +100,15 @@ summary(cancer_abundances)
 
 
 Hypothese 1:
-=> Heeft de proteomic subtype een correlatie met de Tumor cellularity:
+
 Hypotheses:
--Null Hypothesis (H0): The median Tumor_cellularity_(%) is the same across all Proteomic_Subtype groups.
--Alternative Hypothesis (Ha): At least one group has a different median Tumor_cellularity_(%).
+Null hypothesis (H₀): The median Tumor Cellularity is the same across all proteomic subtypes. 
+Alternative hypothesis (Hₐ): At least one Proteomic Subtype has a different median Tumor Cellularity. 
 
 Missing values:
 ```{r}
-vis_miss(cancer_dataset)       # Heatmap van missende waarden
-gg_miss_var(cancer_dataset)    # Barplot van missende waarden per kolom
+vis_miss(cancer_dataset)       # Heatmap of missing values
+gg_miss_var(cancer_dataset)    # Barplot of missing values
 ```
 Check how many NA values in Tumor cellularity:
 ```{r}
@@ -134,7 +134,7 @@ library(naniar)
 #Plot Missingness:
 
 # Check missing data patterns
-vis_miss(cancer_dataset)  # naniar package
+vis_miss(cancer_dataset)  
 
 ```
 
@@ -151,7 +151,7 @@ print(cancer_dataset$`Tumor_cellularity_(%)`)
 
 ```
 
-Outliers eruitfilteren:
+Filter out outliers:
 ```{r}
 ggplot(cancer_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`, fill = Proteomic_Subtype)) +
   geom_boxplot(outlier.color = "purple", outlier.shape = 8) +
@@ -214,7 +214,7 @@ ggplot(cancer_dataset, aes(x = `Tumor_cellularity_(%)`, fill = Proteomic_Subtype
        y = "Density") +
   theme_minimal()
 ```
-Tumor cellullarity data are not normally ditributed per Proteomic Subtype. (Log-transformations are not an improvement, it was tested). 
+Tumor cellullarity data are not normally ditributed per Proteomic Subtype. (Log-transformations were not an improvement). 
 ANOVA can not be performed, because the data is not normally distributed. 
 
 P-values testing: 
@@ -237,7 +237,7 @@ Interpretation: With a p-value of
 This means that there is strong evidence to reject the null hypothesis.
 At least one of the Proteomic_Subtype groups has a significantly different median Tumor_cellularity_(%).
 
-Since the Kruskal-Wallis test is an omnibus test, it doesn't specify which groups differ. To identify the specific groups with differing medians, you can perform pairwise post-hoc tests: (post-hoc tests are needed to specify which groups differ)
+Since the Kruskal-Wallis test is an omnibus test, it doesn't specify which groups differ. To identify the specific groups with differing medians, you can perform pairwise post-hoc tests:
 
 ```{r}
 pairwise.wilcox.test(cancer_dataset$`Tumor_cellularity_(%)`, 
@@ -281,10 +281,11 @@ With the Monte-Carlo approximation there is no difference in p-values. When ties
 The Wilcoxon test is less sensitive to outliers.
 
 Hypothese 2:
-=> Welke eiwitten hebben invloed op de recurrence status (machine learning)
-==> Age, gender and disease free survival effect on recurrence status (Multivariate analysis)
 
-Missing values checken:
+H₀: Age, gender, and Disease-free survival have no statistically significant effect on Recurrence Status.  
+Hₐ: At least one of the independent variables (age, gender, or Disease-free survival) has a statistically significant effect on Recurrence Status. 
+
+Check missing values:
 ```{r}
 #install.packages("naniar")
 library(naniar)
@@ -297,7 +298,7 @@ vis_miss(cancer_dataset)  # naniar package
 ```
 There are no missing values in Age, gender, disease free survival and recurrence status
 
-Outliers checken:
+Filter out oultiers:
 ```{r}
 df <- cancer_dataset %>% filter(age < quantile(age, 0.99))
 ggplot(cancer_dataset, aes(x = Recurr_status, y = age)) +
@@ -352,8 +353,9 @@ p-value:
 p=0.313
 
 A p-value > 0.05 suggests that we fail to reject the null hypothesis, which means there is no significant evidence to suggest that the data is not normally distributed.
+
 Interpretation
-Based on these results, the age data in your cancer_dataset appears to follow a normal distribution. While this doesn't guarantee perfect normality, it suggests that deviations from normality are not statistically significant.
+Based on these results, the age data in cancer_dataset appears to follow a normal distribution. While this doesn't guarantee perfect normality, it suggests that deviations from normality are not statistically significant.
 
 ```{r}
 library(ggpubr)
@@ -363,10 +365,10 @@ ggqqplot(cancer_dataset$`Disease_free_survival_(m)`)+
 
 shapiro.test(cancer_dataset$`Disease_free_survival_(m)`)
 ```
-The data for Disease_free_survival_(m) is not normally distributed. This means the distribution of the variable significantly deviates from a normal distribution.
+The data for Disease_free_survival_(m) is not normally distributed.
 
 
-Histogrammen:
+Histograms:
 ```{r}
 ggplot(data = cancer_dataset, aes(x = age,
                      fill = Recurr_status))+
@@ -396,9 +398,7 @@ odds
 ```
 Interpretation:
 Odds Ratio for Disease_free_survival_(m):
-OR=0.9639 (as per your output). If correct, this would indicate:
-
-For every one-unit increase in Disease-free survival (in months), the odds of recurrence decrease by about 1−0.964≈3.6%, holding all other variables constant.
+OR=0.9639 this indicates that for every one-unit increase in Disease-free survival (in months), the odds of recurrence decrease by about 1−0.964≈3.6%, holding all other variables constant.
 
 Since 
 OR<1, longer disease-free survival is associated with reduced odds of recurrence.
