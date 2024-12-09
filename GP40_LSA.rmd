@@ -440,7 +440,7 @@ ggplot(combined_filtered_dataset, aes(x = age)) +
 ```{r}
 library(ggpubr)
 ggqqplot(combined_filtered_dataset$age)+
-  ggtitle("Disease free survival")
+  ggtitle("Age")
 ```
 P-values testing with Shapiro for normal distribution:
 ```{r}
