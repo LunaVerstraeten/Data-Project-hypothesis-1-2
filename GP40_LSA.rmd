@@ -219,7 +219,7 @@ Tumor cellullarity data are not normally ditributed per Proteomic Subtype
 
 ```{r}
 
-# Add 1 to avoid issues with log(0)
+
 ggplot(cancer_dataset, aes(x = log(`Tumor_cellularity_(%)` + 1), fill = Proteomic_Subtype)) +
   geom_density(alpha = 0.5) +
   labs(
