@@ -151,6 +151,29 @@ print(cancer_dataset$`Tumor_cellularity_(%)`)
 
 ```
 
+Standardization:
+```{r}
+cancer_dataset$standardized_cellularity <- scale(cancer_dataset$`Tumor_cellularity_(%)`, center = TRUE, scale = TRUE)
+
+# Visualize the standardized column
+ggplot(cancer_dataset, aes(x = Proteomic_Subtype, y = standardized_cellularity)) +
+  geom_boxplot(fill = "grey") +
+  labs(
+    title = "Boxplot of Standardized Tumor Cellularity (%) by Proteomic Subtype",
+    x = "Proteomic Subtype",
+    y = "Standardized Tumor Cellularity (z-score)"
+  ) +
+  theme_minimal()
+
+#visualize without standardization:
+ggplot(cancer_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`, fill = Proteomic_Subtype)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Tumor Cellularity by Proteomic Subtype", y = "Tumor Cellularity (%)", x = "Proteomic Subtype")
+
+```
+Standardization is not needed because the Tumor cellularity is in the same scale in the 3 different groups of the proteomic subtype.
+
 Filter out outliers:
 ```{r}
 ggplot(cancer_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`, fill = Proteomic_Subtype)) +
@@ -161,30 +184,47 @@ ggplot(cancer_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`, f
 ```
 
 ```{r}
-df <- cancer_dataset %>% filter(`Tumor_cellularity_(%)` < quantile(`Tumor_cellularity_(%)`, 0.99))
-ggplot(cancer_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`)) +
-  geom_boxplot(fill = "lightpink") +
+# Calculate IQR-based thresholds
+Q1 <- quantile(cancer_dataset$`Tumor_cellularity_(%)`, 0.25)
+Q3 <- quantile(cancer_dataset$`Tumor_cellularity_(%)`, 0.75)
+IQR <- Q3 - Q1
+lower_bound <- Q1 - 1.5 * IQR
+upper_bound <- Q3 + 1.5 * IQR
+
+# Filter data based on IQR thresholds
+filtered_dataset <- cancer_dataset %>%
+  filter(`Tumor_cellularity_(%)` >= lower_bound & `Tumor_cellularity_(%)` <= upper_bound)
+
+# Create boxplot with the filtered data
+ggplot(filtered_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`)) +
+  geom_boxplot(fill = "lavender") +
+  labs(
+    title = "Boxplot of Tumor Cellularity (%) by Proteomic Subtype (IQR Method)",
+    x = "Proteomic Subtype",
+    y = "Tumor Cellularity (%)"
+  ) +
   theme_minimal()
+
 ```
- => there is no difference when filtered on 99% quantile. 
+There were outliers in the dataset. These will be filtered out. 
 
 
 ###Data visualisation
 
 Histogram for numerical values
 ```{r}
-ggplot(cancer_dataset, aes(x = `Tumor_cellularity_(%)`)) +
+ggplot(filtered_dataset, aes(x = `Tumor_cellularity_(%)`)) +
   geom_histogram(binwidth = 5, fill = "red", color = "black") +
   theme_minimal()
 ```
 
 ```{r}
-cancer_dataset %>% ggplot(aes(x = `Tumor_cellularity_(%)` , fill = Proteomic_Subtype)) + geom_histogram() +theme_classic()
+filtered_dataset %>% ggplot(aes(x = `Tumor_cellularity_(%)` , fill = Proteomic_Subtype)) + geom_histogram() +theme_classic()
 ```
 
 Boxplot:
 ```{r}
-ggplot(cancer_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`)) +
+ggplot(filtered_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`)) +
   geom_boxplot(fill = "lightgreen") +
   theme_minimal()
 ```
@@ -193,7 +233,7 @@ Normal distribution per Subtype:
 library(dplyr)
 
 # Perform Shapiro-Wilk test for normality on each subtype
-normality_results <- cancer_dataset %>%
+normality_results <- filtered_dataset %>%
   filter(!is.na(`Tumor_cellularity_(%)`)) %>%  # Remove rows with NA values
   group_by(Proteomic_Subtype) %>%             # Group by subtype
   summarise(
@@ -205,9 +245,10 @@ print(normality_results)
 ```
 A small p-value (< 0.05) suggests the data is not normally distributed.
 
+
 Visualisation:
 ```{r}
-ggplot(cancer_dataset, aes(x = `Tumor_cellularity_(%)`, fill = Proteomic_Subtype)) +
+ggplot(filtered_dataset, aes(x = `Tumor_cellularity_(%)`, fill = Proteomic_Subtype)) +
   geom_density(alpha = 0.5) +
   labs(title = "Density Plot of Tumor Cellularity by Subtype", 
        x = "Tumor Cellularity (%)",
@@ -220,7 +261,7 @@ Tumor cellullarity data are not normally ditributed per Proteomic Subtype
 ```{r}
 
 
-ggplot(cancer_dataset, aes(x = log(`Tumor_cellularity_(%)` + 1), fill = Proteomic_Subtype)) +
+ggplot(filtered_dataset, aes(x = log(`Tumor_cellularity_(%)` + 1), fill = Proteomic_Subtype)) +
   geom_density(alpha = 0.5) +
   labs(
     title = "Density Plot of Log-Transformed Tumor Cellularity by Subtype", 
@@ -244,23 +285,23 @@ print(normCel)
 
 Kruskal-Wallis test
 ```{r}
-kruskal.test(`Tumor_cellularity_(%)` ~ Proteomic_Subtype, data = cancer_dataset)
+kruskal.test(`Tumor_cellularity_(%)` ~ Proteomic_Subtype, data = filtered_dataset)
 ```
 Interpretation: With a p-value of 
-0.01354, which is less than the common significance level (α=0.05), the test result is statistically significant.
+0.01095, which is less than the common significance level (α=0.05), the test result is statistically significant.
 This means that there is strong evidence to reject the null hypothesis.
 At least one of the Proteomic_Subtype groups has a significantly different median Tumor_cellularity_(%).
 
-Since the Kruskal-Wallis test is an omnibus test, it doesn't specify which groups differ. To identify the specific groups with differing medians, you can perform pairwise post-hoc tests:
+Since the Kruskal-Wallis test is an omnibus test, it doesn't specify which groups differ. To identify the specific groups with differing medians, you can perform pairwise post-hoc tests: (post-hoc tests are needed to specify which groups differ)
 
 ```{r}
-pairwise.wilcox.test(cancer_dataset$`Tumor_cellularity_(%)`, 
-                     cancer_dataset$Proteomic_Subtype, 
+pairwise.wilcox.test(filtered_dataset$`Tumor_cellularity_(%)`, 
+                     filtered_dataset$Proteomic_Subtype, 
                      p.adjust.method = "bonferroni")
 
 
 #Visualisation:
-ggplot(cancer_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`, fill = Proteomic_Subtype)) +
+ggplot(filtered_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`, fill = Proteomic_Subtype)) +
   geom_boxplot() +
   theme_minimal() +
   labs(title = "Tumor Cellularity by Proteomic Subtype", y = "Tumor Cellularity (%)")
@@ -268,15 +309,15 @@ ggplot(cancer_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`, f
 ```
 Interpretation: Results Interpretation
 - S-I vs S-II:
-Adjusted p-value = 1.000.
+Adjusted p-value = 0.763.
 There is no statistically significant difference in the median Tumor_cellularity_(%) between subtypes S-I and S-II.
 
 - S-I vs S-III:
-Adjusted p-value = 0.059.
+Adjusted p-value = 0.142.
 This is not significant at the 0.05 level. You might consider the difference to be marginal or weak evidence against the null hypothesis.
 
 - S-II vs S-III:
-Adjusted p-value = 0.026.
+Adjusted p-value = 0.011.
 This indicates a statistically significant difference in the median Tumor_cellularity_(%) between subtypes S-II and S-III at the 0.05 level.
 
 The warning occurs due to ties in Tumor_cellularity_(%), which is common with real-world data. This doesn't invalidate your results:
@@ -291,8 +332,8 @@ pairwise.wilcox.test(cancer_dataset$`Tumor_cellularity_(%)`,
 ```
 With the Monte-Carlo approximation there is no difference in p-values. When ties are few and the data size is reasonable, the normal approximation (used in exact = FALSE) provides a good estimate of the p-values. Therefore thee approximate p-values provided by the pairwise Wilcox test are reliable and consistent with the results generated via Monte Carlo simulations.
 
-
 The Wilcoxon test is less sensitive to outliers.
+
 
 Hypothese 2:
 
@@ -314,83 +355,161 @@ There are no missing values in Age, gender, disease free survival and recurrence
 
 Filter out oultiers:
 ```{r}
-df <- cancer_dataset %>% filter(age < quantile(age, 0.99))
+#without outlier check
 ggplot(cancer_dataset, aes(x = Recurr_status, y = age)) +
   geom_boxplot(fill = "lightpink") +
   theme_minimal()
+#with outlier check:
+# Calculate IQR-based thresholds for age
+Q1 <- quantile(cancer_dataset$age, 0.25)
+Q3 <- quantile(cancer_dataset$age, 0.75)
+IQR <- Q3 - Q1
+lower_bound <- Q1 - 1.5 * IQR
+upper_bound <- Q3 + 1.5 * IQR
+
+# Filter data based on IQR thresholds
+filtered_dataset2 <- cancer_dataset %>%
+  filter(age >= lower_bound & age <= upper_bound)
+
+# Create boxplot with the filtered data
+ggplot(filtered_dataset2, aes(x = Recurr_status, y = age)) +
+  geom_boxplot(fill = "darkgreen") +
+  labs(
+    title = "Boxplot of Age by Recurrence Status (IQR Method)",
+    x = "Recurrence Status",
+    y = "Age"
+  ) +
+  theme_minimal()
+
 ```
+
 ```{r}
-df <- cancer_dataset %>% filter(`Disease_free_survival_(m)` < quantile(age, 0.99))
+#without outlier check:
 ggplot(cancer_dataset, aes(x = Recurr_status, y = `Disease_free_survival_(m)`)) +
   geom_boxplot(fill = "lightpink") +
   theme_minimal()
+
+#with outlier check 
+# Calculate IQR-based thresholds for Disease_free_survival_(m)
+Q1 <- quantile(cancer_dataset$`Disease_free_survival_(m)`, 0.25)
+Q3 <- quantile(cancer_dataset$`Disease_free_survival_(m)`, 0.75)
+IQR <- Q3 - Q1
+lower_bound <- Q1 - 1.5 * IQR
+upper_bound <- Q3 + 1.5 * IQR
+
+# Filter data based on IQR thresholds
+filtered_dataset3 <- cancer_dataset %>%
+  filter(`Disease_free_survival_(m)` >= lower_bound & `Disease_free_survival_(m)` <= upper_bound)
+
+# Create boxplot with the filtered data
+ggplot(filtered_dataset, aes(x = Recurr_status, y = `Disease_free_survival_(m)`)) +
+  geom_boxplot(fill = "darkblue") +
+  labs(
+    title = "Boxplot of Disease-Free Survival (months) by Recurrence Status (IQR Method)",
+    x = "Recurrence Status",
+    y = "Disease-Free Survival (months)"
+  ) +
+  theme_minimal()
+
 ```
+
 ```{r}
 ggplot(cancer_dataset, aes(x = Recurr_status, y = age, fill = Recurr_status)) +
   geom_boxplot(outlier.color = "purple", outlier.shape = 8) +
   theme_minimal() +
   labs(title = "Age by Recurrence status", y = "Age", x = "Recurrence status")
 ```
+
 ```{r}
 ggplot(cancer_dataset, aes(x = Recurr_status, y = `Disease_free_survival_(m)`, fill = Recurr_status)) +
   geom_boxplot(outlier.color = "purple", outlier.shape = 8) +
   theme_minimal() +
   labs(title = "Disease free survival by Recurrence status", y = "Age", x = "Recurrence status")
 ```
-No outliers present in Age and disease free survival
+
+There are outliers present in the variables. These will be filtered out. 
+
+Combine both of the filtered datasets:
+```{r}
+# Combine both filtered datasets using an inner join
+combined_filtered_dataset <- filtered_dataset2 %>%
+  inner_join(filtered_dataset3, by = colnames(cancer_dataset))
+
+# Verify the combined dataset
+print(combined_filtered_dataset)
+```
 
 Distribution:
 ```{r}
-ggplot(cancer_dataset, aes(x = age)) +
+ggplot(combined_filtered_dataset, aes(x = age)) +
   geom_histogram(binwidth = 5, fill = "red", color = "black") +
   theme_minimal()
 ```
 
 ```{r}
 library(ggpubr)
-ggqqplot(cancer_dataset$age)+
+ggqqplot(combined_filtered_dataset$age)+
   ggtitle("Disease free survival")
 ```
 P-values testing with Shapiro for normal distribution:
 ```{r}
-cancer_dataset$age <- as.numeric(as.character(cancer_dataset$age))
+combined_filtered_dataset$age <- as.numeric(as.character(combined_filtered_dataset$age))
 
-shapiro.test(cancer_dataset$age)
+shapiro.test(combined_filtered_dataset$age)
 ```
-The results of your Shapiro-Wilk test indicate the following:
+The results of the Shapiro-Wilk test indicate the following for the variable age:
 
 Test Statistic (W): 
-W=0.98504
+W=0.99226
 The closer this value is to 1, the more the data resembles a normal distribution.
 
 p-value: 
-p=0.313
+p=0.844
 
 A p-value > 0.05 suggests that we fail to reject the null hypothesis, which means there is no significant evidence to suggest that the data is not normally distributed.
 
-Interpretation
-Based on these results, the age data in cancer_dataset appears to follow a normal distribution. While this doesn't guarantee perfect normality, it suggests that deviations from normality are not statistically significant.
+Interpretation:
+Based on these results, the age data in your cancer_dataset appears to follow a normal distribution. While this doesn't guarantee perfect normality, it suggests that deviations from normality are not statistically significant.
 
 ```{r}
 library(ggpubr)
-ggqqplot(cancer_dataset$`Disease_free_survival_(m)`)+
+ggqqplot(combined_filtered_dataset$`Disease_free_survival_(m)`)+
   ggtitle("Disease free survival")
 
 
-shapiro.test(cancer_dataset$`Disease_free_survival_(m)`)
+shapiro.test(combined_filtered_dataset$`Disease_free_survival_(m)`)
 ```
 The data for Disease_free_survival_(m) is not normally distributed.
 
+P-values testing with Shapiro for normal distribution:
+```{r}
+combined_filtered_dataset$age <- as.numeric(as.character(combined_filtered_dataset$`Disease_free_survival_(m)`))
+
+shapiro.test(combined_filtered_dataset$`Disease_free_survival_(m)`)
+```
+The results of Shapiro-Wilk test indicate the following for the variable Disease_free_survival_(m):
+
+Test Statistic (W):
+W=0.81088
+The farther this value is from 1, the less the data resembles a normal distribution.
+
+p-value:
+p=6.216×10^−10
+ 
+A p-value < 0.05 suggests that we reject the null hypothesis, meaning there is significant evidence to indicate that the data does not follow a normal distribution.
+
+Interpretation:
+Based on these results, the Disease_free_survival_(m) data in the combined_filtered_dataset does not follow a normal distribution. The significant deviation from normality implies that statistical methods relying on the assumption of normality may not be appropriate for this variable.
 
 Histograms:
 ```{r}
-ggplot(data = cancer_dataset, aes(x = age,
+ggplot(data = combined_filtered_dataset, aes(x = age,
                      fill = Recurr_status))+
   geom_histogram()+
   theme_classic()
 ```
 ```{r}
-ggplot(data = cancer_dataset, aes(x = `Disease_free_survival_(m)`,
+ggplot(data = combined_filtered_dataset, aes(x = `Disease_free_survival_(m)`,
                      fill = Recurr_status))+
   geom_histogram()+
   theme_classic()
@@ -399,11 +518,11 @@ The data does not need to be normally distributed for the logistic regression mo
 
 Logistic model:
 ```{r}
-blm_recurr <- glm(Recurr_status ~ age+Gender+`Disease_free_survival_(m)`, data=cancer_dataset, family="binomial" )
+blm_recurr <- glm(Recurr_status ~ age+Gender+`Disease_free_survival_(m)`, data=combined_filtered_dataset, family="binomial" )
 
 summary(blm_recurr)
 ```
-Based on the p-values only the parameter Disease free survival is significant.
+Based on the p-values only the parameter Disease free survival is significant, as it has a value below the 0.05 treshold.
 
 Odds ratio:
 ```{r}
@@ -412,10 +531,9 @@ odds
 ```
 Interpretation:
 Odds Ratio for Disease_free_survival_(m):
-OR=0.9639 this indicates that for every one-unit increase in Disease-free survival (in months), the odds of recurrence decrease by about 1−0.964≈3.6%, holding all other variables constant.
+OR=0.9642 (as per your output).This indicates that for every one-unit increase in Disease-free survival (in months), the odds of recurrence decrease by about 1−0.964 ≈3.6%, holding all other variables constant.
 
-Since 
-OR<1, longer disease-free survival is associated with reduced odds of recurrence.
+Since OR<1, longer disease-free survival is associated with reduced odds of recurrence.
 
 ```{r}
 #install.packages("forestmodel")
@@ -438,15 +556,15 @@ cancer_dataset %>%
 Kaplan-Meier plot:
 ```{r}
 # create the surv object
-surv_object <- Surv(cancer_dataset$`Disease_free_survival_(m)`, as.numeric(cancer_dataset$Recurr_status))
+surv_object <- Surv(combined_filtered_dataset$`Disease_free_survival_(m)`, as.numeric(combined_filtered_dataset$Recurr_status))
 
 # fit a KM curve to the data
-fit <- survfit(surv_object ~ Recurr_status, data=cancer_dataset)
+fit <- survfit(surv_object ~ Recurr_status, data=combined_filtered_dataset)
 summary(fit)
 ```
 ```{r}
 # plot this curve
-ggsurvplot(fit, data = cancer_dataset,
+ggsurvplot(fit, data = combined_filtered_dataset,
            pval = TRUE, conf.int = TRUE,
            risk.table = TRUE, # Add risk table
            risk.table.col = "strata", # Change risk table color by groups
@@ -455,9 +573,9 @@ ggsurvplot(fit, data = cancer_dataset,
 ```
 Log rank test:
 ```{r}
-fitdif <- survdiff(surv_object ~ Recurr_status, data=cancer_dataset)
+fitdif <- survdiff(surv_object ~ Recurr_status, data=combined_filtered_dataset)
 fitdif
 ```
 
 Interpretation:
-n first instance we could look to the p-value that comes out of the survdif analysis. In this case the p-value is lower than 2e-16. We could thus accept or alternative hypothesis and state that the two groups have a different Disease free survival. We could also look to the plot we made with ggsurvplot(). The confidence intervals are not overlapping, and the p-value is lower than 0.001. Both are an indication that the two groups have indeed a different Disease free survival. At the moment we know that there are differences, but how big is this difference? You might get an indication from your plot, by reading the median survival time. Which is the moment where 50% of the patients in that group died. We can see that this is not reached for the non-recurrence patients and its about 10 months for the Recurrence patients.
+In first instance we could look to the p-value that comes out of the survdif analysis. In this case the p-value is lower than 2e-16. We could thus accept or alternative hypothesis and state that the two groups have a different Disease free survival. We could also look to the plot we made with ggsurvplot(). The confidence intervals are not overlapping, and the p-value is lower than 0.001. Both are an indication that the two groups have indeed a different Disease free survival. At the moment we know that there are differences, but how big is this difference? You might get an indication from your plot, by reading the median survival time. Which is the moment where 50% of the patients in that group died. We can see that this is not reached for the non-recurrence patients and its about 10 months for the Recurrence patients.
