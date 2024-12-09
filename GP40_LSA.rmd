@@ -273,15 +273,6 @@ ggplot(filtered_dataset, aes(x = log(`Tumor_cellularity_(%)` + 1), fill = Proteo
 Since the log transformation did not result in approximate normality, nonparametric statistical methods that do not assume normality will be considered for further analysis.
 
 P-values testing: 
-```{r}
-normCel <- filtered_dataset %>%
-  group_by(Proteomic_Subtype) %>%
-  summarize(p_value = t.test(`Tumor_cellularity_(%)`)$p.value)
-
-# Print results
-print(normCel)
-```
-
 
 Kruskal-Wallis test
 ```{r}
