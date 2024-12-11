@@ -364,11 +364,11 @@ lower_bound <- Q1 - 1.5 * IQR
 upper_bound <- Q3 + 1.5 * IQR
 
 # Filter data based on IQR thresholds
-filtered_dataset2 <- cancer_dataset %>%
+filtered_dataset_age <- cancer_dataset %>%
   filter(age >= lower_bound & age <= upper_bound)
 
 # Create boxplot with the filtered data
-ggplot(filtered_dataset2, aes(x = Recurr_status, y = age)) +
+ggplot(filtered_dataset_age, aes(x = Recurr_status, y = age)) +
   geom_boxplot(fill = "darkgreen") +
   labs(
     title = "Boxplot of Age by Recurrence Status (IQR Method)",
@@ -423,35 +423,25 @@ ggplot(cancer_dataset, aes(x = Recurr_status, y = `Disease_free_survival_(m)`, f
   labs(title = "Disease free survival by Recurrence status", y = "Age", x = "Recurrence status")
 ```
 
-There are outliers present in the variables. These will be filtered out. 
-
-Combine both of the filtered datasets:
-```{r}
-# Combine both filtered datasets using an inner join
-combined_filtered_dataset <- filtered_dataset2 %>%
-  inner_join(filtered_dataset3, by = colnames(cancer_dataset))
-
-# Verify the combined dataset
-print(combined_filtered_dataset)
-```
+There are outliers present in the variable age. These will be filtered out. But no outliers were detected for Disease_free_survival_(m).
 
 Distribution:
 ```{r}
-ggplot(combined_filtered_dataset, aes(x = age)) +
+ggplot(filtered_dataset_age, aes(x = age)) +
   geom_histogram(binwidth = 5, fill = "red", color = "black") +
   theme_minimal()
 ```
 
 ```{r}
 library(ggpubr)
-ggqqplot(combined_filtered_dataset$age)+
+ggqqplot(filtered_dataset_age$age)+
   ggtitle("Age")
 ```
 P-values testing with Shapiro for normal distribution:
 ```{r}
-combined_filtered_dataset$age <- as.numeric(as.character(combined_filtered_dataset$age))
+filtered_dataset_age$age <- as.numeric(as.character(filtered_dataset_age$age))
 
-shapiro.test(combined_filtered_dataset$age)
+shapiro.test(filtered_dataset_age$age)
 ```
 The results of the Shapiro-Wilk test indicate the following for the variable age:
 
@@ -469,19 +459,17 @@ Based on these results, the age data in your cancer_dataset appears to follow a 
 
 ```{r}
 library(ggpubr)
-ggqqplot(combined_filtered_dataset$`Disease_free_survival_(m)`)+
+ggqqplot(filtered_dataset_age$`Disease_free_survival_(m)`)+
   ggtitle("Disease free survival")
 
-
-shapiro.test(combined_filtered_dataset$`Disease_free_survival_(m)`)
 ```
 The data for Disease_free_survival_(m) is not normally distributed.
 
 P-values testing with Shapiro for normal distribution:
 ```{r}
-combined_filtered_dataset$age <- as.numeric(as.character(combined_filtered_dataset$`Disease_free_survival_(m)`))
+filtered_dataset_age$`Disease_free_survival_(m)` <- as.numeric(as.character(filtered_dataset_age$`Disease_free_survival_(m)`))
 
-shapiro.test(combined_filtered_dataset$`Disease_free_survival_(m)`)
+shapiro.test(filtered_dataset_age$`Disease_free_survival_(m)`)
 ```
 The results of Shapiro-Wilk test indicate the following for the variable Disease_free_survival_(m):
 
@@ -499,13 +487,13 @@ Based on these results, the Disease_free_survival_(m) data in the combined_filte
 
 Histograms:
 ```{r}
-ggplot(data = combined_filtered_dataset, aes(x = age,
+ggplot(data = filtered_dataset_age, aes(x = age,
                      fill = Recurr_status))+
   geom_histogram()+
   theme_classic()
 ```
 ```{r}
-ggplot(data = combined_filtered_dataset, aes(x = `Disease_free_survival_(m)`,
+ggplot(data = filtered_dataset_age, aes(x = `Disease_free_survival_(m)`,
                      fill = Recurr_status))+
   geom_histogram()+
   theme_classic()
@@ -514,7 +502,7 @@ The data does not need to be normally distributed for the logistic regression mo
 
 Logistic model:
 ```{r}
-blm_recurr <- glm(Recurr_status ~ age+Gender+`Disease_free_survival_(m)`, data=combined_filtered_dataset, family="binomial" )
+blm_recurr <- glm(Recurr_status ~ age+Gender+`Disease_free_survival_(m)`, data=filtered_dataset_age, family="binomial" )
 
 summary(blm_recurr)
 ```
@@ -527,7 +515,7 @@ odds
 ```
 Interpretation:
 Odds Ratio for Disease_free_survival_(m):
-OR=0.9642 (as per your output).This indicates that for every one-unit increase in Disease-free survival (in months), the odds of recurrence decrease by about 1−0.964 ≈3.6%, holding all other variables constant.
+OR=0.9643 (as per your output).This indicates that for every one-unit increase in Disease-free survival (in months), the odds of recurrence decrease by about 1−0.964 ≈3.6%, holding all other variables constant.
 
 Since OR<1, longer disease-free survival is associated with reduced odds of recurrence.
 
@@ -552,15 +540,15 @@ cancer_dataset %>%
 Kaplan-Meier plot:
 ```{r}
 # create the surv object
-surv_object <- Surv(combined_filtered_dataset$`Disease_free_survival_(m)`, as.numeric(combined_filtered_dataset$Recurr_status))
+surv_object <- Surv(filtered_dataset_age$`Disease_free_survival_(m)`, as.numeric(filtered_dataset_age$Recurr_status))
 
 # fit a KM curve to the data
-fit <- survfit(surv_object ~ Recurr_status, data=combined_filtered_dataset)
+fit <- survfit(surv_object ~ Recurr_status, data=filtered_dataset_age)
 summary(fit)
 ```
 ```{r}
 # plot this curve
-ggsurvplot(fit, data = combined_filtered_dataset,
+ggsurvplot(fit, data = filtered_dataset_age,
            pval = TRUE, conf.int = TRUE,
            risk.table = TRUE, # Add risk table
            risk.table.col = "strata", # Change risk table color by groups
@@ -569,7 +557,7 @@ ggsurvplot(fit, data = combined_filtered_dataset,
 ```
 Log rank test:
 ```{r}
-fitdif <- survdiff(surv_object ~ Recurr_status, data=combined_filtered_dataset)
+fitdif <- survdiff(surv_object ~ Recurr_status, data=filtered_dataset_age)
 fitdif
 ```
 
