@@ -483,7 +483,7 @@ p=6.216×10^−10
 A p-value < 0.05 suggests that we reject the null hypothesis, meaning there is significant evidence to indicate that the data does not follow a normal distribution.
 
 Interpretation:
-Based on these results, the Disease_free_survival_(m) data in the combined_filtered_dataset does not follow a normal distribution. The significant deviation from normality implies that statistical methods relying on the assumption of normality may not be appropriate for this variable.
+Based on these results, the Disease_free_survival_(m) data in the filtered_dataset_age does not follow a normal distribution. The significant deviation from normality implies that statistical methods relying on the assumption of normality may not be appropriate for this variable.
 
 Histograms:
 ```{r}
