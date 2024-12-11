@@ -65,6 +65,11 @@ Basic stats for each of the columns:
 ```{r}
 summary(cancer_dataset)
 ```
+```{r}
+#install.packages("skimr")
+library(skimr)
+skim(cancer_dataset)
+```
 
 Distribution of the data
 ```{r}
