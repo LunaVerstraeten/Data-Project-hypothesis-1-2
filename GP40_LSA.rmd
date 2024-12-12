@@ -563,3 +563,116 @@ fitdif
 
 Interpretation:
 In first instance we could look to the p-value that comes out of the survdif analysis. In this case the p-value is lower than 2e-16. We could thus accept or alternative hypothesis and state that the two groups have a different Disease free survival. We could also look to the plot we made with ggsurvplot(). The confidence intervals are not overlapping, and the p-value is lower than 0.001. Both are an indication that the two groups have indeed a different Disease free survival. At the moment we know that there are differences, but how big is this difference? You might get an indication from your plot, by reading the median survival time. Which is the moment where 50% of the patients in that group died. We can see that this is not reached for the non-recurrence patients and its about 10 months for the Recurrence patients.
+
+
+We could also look at if square root transformation would improve the logistic regression model: 
+-> One assumption of this model is the variables are linear with the log odds of the outcome
+```{r}
+install.packages("ResourceSelection")
+library(ResourceSelection)
+# Add predictions from the model
+filtered_dataset_age$predicted <- predict(blm_recurrence, type = "response")
+# Bin the data
+filtered_dataset_age$bin <- cut(filtered_dataset_age$predicted, breaks = 10)
+# Plot the mean of predictors against log-odds of outcome
+logit <- log(filtered_dataset_age$predicted / (1 - filtered_dataset_age$predicted))
+plot(filtered_dataset_age$`Disease_free_survival_(m)`, logit, 
+      main = "Disease Free Survival vs Log-Odds") # Example for 'Disease_free_survival_(m)'
+
+# Step 2: Apply square root transformation
+filtered_dataset_age$`Disease_free_survival_(m)_sqrt` <- sqrt(filtered_dataset_age$`Disease_free_survival_(m)`)
+
+# Fit the logistic regression model with transformed 'Disease_free_survival_(m)_sqrt'
+blm_recurr_sqrt1 <- glm(Recurr_status ~ age + Gender + `Disease_free_survival_(m)_sqrt`, 
+                       data = filtered_dataset_age, family = "binomial")
+
+# Get the predicted values from the model
+filtered_dataset_age$predicted_sqrt <- predict(blm_recurr_sqrt1, type = "response")
+
+# Compute the log-odds
+logit_sqrt <- log(filtered_dataset_age$predicted_sqrt / (1 - filtered_dataset_age$predicted_sqrt))
+
+# Plot the relationship between the transformed 'Disease_free_survival_(m)_sqrt' and log-odds
+plot(filtered_dataset_age$`Disease_free_survival_(m)_sqrt`, logit_sqrt, 
+     main = "Square Root of Disease Free Survival vs Log-Odds")
+```
+
+
+```{r}
+#install.packages("ResourceSelection")
+library(ResourceSelection)
+# Add predictions from the model
+filtered_dataset_age$predicted <- predict(blm_recurrence, type = "response")
+# Bin the data
+filtered_dataset_age$bin <- cut(filtered_dataset_age$predicted, breaks = 10)
+# Plot the mean of predictors against log-odds of outcome
+logit <- log(filtered_dataset_age$predicted / (1 - filtered_dataset_age$predicted))
+plot(filtered_dataset_age$`age`, logit, 
+      main = "age vs Log-Odds") # Example for 'age'
+
+
+# Step 2: Apply square root transformation
+filtered_dataset_age$`age_sqrt` <- sqrt(filtered_dataset_age$`age`)
+
+# Fit the logistic regression model with transformed 'age_sqrt'
+blm_recurr_sqrt1 <- glm(Recurr_status ~ age + Gender + `age_sqrt`, 
+                       data = filtered_dataset_age, family = "binomial")
+
+# Get the predicted values from the model
+filtered_dataset_age$predicted_sqrt <- predict(blm_recurr_sqrt1, type = "response")
+
+# Compute the log-odds
+logit_sqrt <- log(filtered_dataset_age$predicted_sqrt / (1 - filtered_dataset_age$predicted_sqrt))
+
+# Plot the relationship between the transformed 'Disease_free_survival_(m)_sqrt' and log-odds
+plot(filtered_dataset_age$`age_sqrt`, logit_sqrt, 
+     main = "Square Root of age vs Log-Odds")
+```
+
+For the variable age, there is no improvement of this transformation on the linearity. 
+```{r}
+blm_recurrence <- glm(Recurr_status ~ age+Gender+`Disease_free_survival_(m)`, data=filtered_dataset_age, family="binomial" )
+summary(blm_recurrence)
+
+blm_recurr_sqrt1 <- glm(Recurr_status ~ age + Gender + `Disease_free_survival_(m)_sqrt`, 
+                       data = filtered_dataset_age, family = "binomial")
+summary(blm_recurr_sqrt1)
+```
+
+=> New model with the square root transformation of Disease free survival is better! You have lower AIC and residual deviance, indicating a better overall fit!
+The p-value for the square root-transformed Disease_free_survival_(m) is lower, suggesting a stronger statistical association with Recurrence Status. This indicates that the transformation helped linearize the relationship between Disease-free Survival and Recurrence Status, making the logistic regression assumptions more appropriate.
+
+```{r}
+odds <- exp(coef(blm_recurr_sqrt1))
+odds
+```
+
+```{r}
+#install.packages("forestmodel")
+library(forestmodel)
+forest_model(blm_recurr_sqrt1)
+```
+
+Before Transformation (OR = 0.9643):
+
+The odds ratio of 0.9643 indicates that for every one-month increase in Disease_free_survival_(m), the odds of recurrence decrease by approximately 3.6% (1 - 0.9643 = 0.036 or 3.6%).
+This effect size suggests that longer disease-free survival is associated with a lower risk of recurrence, though the effect per month is relatively small.
+After Square Root Transformation (OR = 0.5660):
+
+The odds ratio of 0.5660 indicates that for every one-unit increase in the square root of Disease_free_survival_(m), the odds of recurrence decrease by approximately 43.4% (1 - 0.5660 = 0.434 or 43.4%).
+Since the scale has changed, the interpretation is now based on the square root of the survival time, meaning the effect of disease-free survival on recurrence is stronger and non-linear.
+
+```{r}
+# plot this curve
+ggsurvplot(fit, data = filtered_dataset_age,
+           pval = TRUE, conf.int = TRUE,
+           risk.table = TRUE, # Add risk table
+           risk.table.col = "strata", # Change risk table color by groups
+           linetype = "strata", # Change line type by groups
+           ggtheme = theme_classic()) # Change ggplot2 theme
+```
+
+```{r}
+fitdif <- survdiff(surv_object ~ Recurr_status, data=filtered_dataset_age)
+fitdif
+```
