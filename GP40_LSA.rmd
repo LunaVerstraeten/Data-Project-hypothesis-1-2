@@ -202,7 +202,7 @@ filtered_dataset <- cancer_dataset %>%
 
 # Create boxplot with the filtered data
 ggplot(filtered_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`)) +
-  geom_boxplot(fill = "lavender") +
+  geom_boxplot(fill = "Proteomic_Subtype") +
   labs(
     title = "Boxplot of Tumor Cellularity (%) by Proteomic Subtype (IQR Method)",
     x = "Proteomic Subtype",
@@ -662,17 +662,4 @@ After Square Root Transformation (OR = 0.5660):
 The odds ratio of 0.5660 indicates that for every one-unit increase in the square root of Disease_free_survival_(m), the odds of recurrence decrease by approximately 43.4% (1 - 0.5660 = 0.434 or 43.4%).
 Since the scale has changed, the interpretation is now based on the square root of the survival time, meaning the effect of disease-free survival on recurrence is stronger and non-linear.
 
-```{r}
-# plot this curve
-ggsurvplot(fit, data = filtered_dataset_age,
-           pval = TRUE, conf.int = TRUE,
-           risk.table = TRUE, # Add risk table
-           risk.table.col = "strata", # Change risk table color by groups
-           linetype = "strata", # Change line type by groups
-           ggtheme = theme_classic()) # Change ggplot2 theme
-```
 
-```{r}
-fitdif <- survdiff(surv_object ~ Recurr_status, data=filtered_dataset_age)
-fitdif
-```
