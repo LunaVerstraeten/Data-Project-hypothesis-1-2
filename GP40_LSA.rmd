@@ -177,7 +177,7 @@ ggplot(cancer_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`, f
   labs(title = "Tumor Cellularity by Proteomic Subtype", y = "Tumor Cellularity (%)", x = "Proteomic Subtype")
 
 ```
-Standardization is not needed because the Tumor cellularity is in the same scale in the 3 different groups of the proteomic subtype.
+Standardization is not needed because Tumor cellularity is in the same scale in the 3 different groups of the proteomic subtype.
 
 Filter out outliers:
 ```{r}
@@ -567,6 +567,7 @@ In first instance we could look to the p-value that comes out of the survdif ana
 
 We could also look at if square root transformation would improve the logistic regression model: 
 -> One assumption of this model is the variables are linear with the log odds of the outcome
+
 ```{r}
 install.packages("ResourceSelection")
 library(ResourceSelection)
