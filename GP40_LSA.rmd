@@ -398,7 +398,7 @@ filtered_dataset3 <- cancer_dataset %>%
   filter(`Disease_free_survival_(m)` >= lower_bound & `Disease_free_survival_(m)` <= upper_bound)
 
 # Create boxplot with the filtered data
-ggplot(filtered_dataset, aes(x = Recurr_status, y = `Disease_free_survival_(m)`)) +
+ggplot(filtered_dataset3, aes(x = Recurr_status, y = `Disease_free_survival_(m)`)) +
   geom_boxplot(fill = "darkblue") +
   labs(
     title = "Boxplot of Disease-Free Survival (months) by Recurrence Status (IQR Method)",
