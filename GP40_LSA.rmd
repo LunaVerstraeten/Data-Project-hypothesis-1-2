@@ -201,8 +201,8 @@ filtered_dataset <- cancer_dataset %>%
   filter(`Tumor_cellularity_(%)` >= lower_bound & `Tumor_cellularity_(%)` <= upper_bound)
 
 # Create boxplot with the filtered data
-ggplot(filtered_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`)) +
-  geom_boxplot(fill = "Proteomic_Subtype") +
+ggplot(filtered_dataset, aes(x = Proteomic_Subtype, y = `Tumor_cellularity_(%)`, fill = Proteomic_Subtype)) +
+  geom_boxplot(outlier.color = "purple", outlier.shape = 8) +
   labs(
     title = "Boxplot of Tumor Cellularity (%) by Proteomic Subtype (IQR Method)",
     x = "Proteomic Subtype",
